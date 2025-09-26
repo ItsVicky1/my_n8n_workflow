@@ -1,0 +1,243 @@
+{
+  "name": "convert pdf to google sheet",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1HAeQ_0qwO4oWYnDaG6beEfANLiYC5Srn",
+          "mode": "list",
+          "cachedResultName": "my folder n8n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1HAeQ_0qwO4oWYnDaG6beEfANLiYC5Srn"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        -64
+      ],
+      "id": "585f6a93-e0cc-4daa-ae92-b1a00f3e5ffb",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "5s37cuj9nAxM9TCL",
+          "name": "Google Drive account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        32,
+        -64
+      ],
+      "id": "50b2c2dd-35a0-4c4a-8375-843124f6a4ba",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "5s37cuj9nAxM9TCL",
+          "name": "Google Drive account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        256,
+        -64
+      ],
+      "id": "80526733-9451-4157-a5fd-e48e716565c9",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/18xnN-dMthBOhCwkhJBqNGgjmqDP7tHxM7EArFFg_aro/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/18xnN-dMthBOhCwkhJBqNGgjmqDP7tHxM7EArFFg_aro/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sr no": "={{ $json.SNo }}",
+            "Name": "={{ $json.Name }}",
+            "Email": "={{ $json.Email }}",
+            "Title ": "={{ $json.Title }}",
+            "Company ": "={{ $json.Company }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Sr no",
+              "displayName": "Sr no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Title ",
+              "displayName": "Title ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company ",
+              "displayName": "Company ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        -64
+      ],
+      "id": "0846a733-da08-4f68-8086-368b6435746f",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wwhDzNxZIUmk0FnN",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nlet results = [];\n\nfor (let i = 0; i < allItems.length; i++) {\n    const item = allItems[i];\n    let rawText = \"\";\n    \n    if (item.json && item.json.text) {\n        rawText = item.json.text;\n    }\n    \n    if (rawText) {\n        // Split by lines and clean up\n        const lines = rawText.split('\\n');\n        \n        for (let line of lines) {\n            line = line.trim();\n            \n            // Skip empty lines, headers, and very short lines\n            if (!line || \n                line.includes('SNo') || \n                line.includes('Name') || \n                line.includes('Email') || \n                line.includes('Title') ||\n                line.includes('Company') ||\n                line.length < 25) {\n                continue;\n            }\n            \n            // Look for email pattern\n            const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/;\n            const emailMatch = line.match(emailRegex);\n            \n            if (emailMatch) {\n                const email = emailMatch[1];\n                \n                // Find email position in the line\n                const emailIndex = line.indexOf(email);\n                const beforeEmail = line.substring(0, emailIndex).trim();\n                const afterEmail = line.substring(emailIndex + email.length).trim();\n                \n                // Parse before email (Serial No + Name)\n                let srNo = \"\";\n                let name = \"\";\n                \n                const beforeParts = beforeEmail.split(/\\s+/);\n                if (beforeParts.length >= 2) {\n                    // Check if first part is a number\n                    if (/^\\d+$/.test(beforeParts[0])) {\n                        srNo = beforeParts[0];\n                        name = beforeParts.slice(1).join(' ');\n                    } else {\n                        srNo = (results.length + 1).toString();\n                        name = beforeParts.join(' ');\n                    }\n                }\n                \n                // Parse after email (Title + Company)\n                let title = \"\";\n                let company = \"\";\n                \n                if (afterEmail.length > 0) {\n                    // Split by common patterns that separate title from company\n                    const afterParts = afterEmail.split(/\\s+/);\n                    \n                    // Strategy: Look for common title endings to split correctly\n                    let titleEndIndex = -1;\n                    const titleKeywords = ['Director', 'Manager', 'Head', 'VP', 'President', 'Officer', 'Lead', 'Executive', 'Specialist', 'Analyst', 'Coordinator', 'Associate'];\n                    \n                    for (let j = 0; j < afterParts.length; j++) {\n                        for (let keyword of titleKeywords) {\n                            if (afterParts[j].includes(keyword)) {\n                                titleEndIndex = j;\n                                break;\n                            }\n                        }\n                        if (titleEndIndex !== -1) break;\n                    }\n                    \n                    if (titleEndIndex !== -1) {\n                        title = afterParts.slice(0, titleEndIndex + 1).join(' ');\n                        company = afterParts.slice(titleEndIndex + 1).join(' ');\n                    } else {\n                        // Fallback: first 3-4 words as title, rest as company\n                        const splitPoint = Math.min(4, Math.floor(afterParts.length / 2));\n                        title = afterParts.slice(0, splitPoint).join(' ');\n                        company = afterParts.slice(splitPoint).join(' ');\n                    }\n                }\n                \n                // Clean up empty values\n                if (!srNo) srNo = (results.length + 1).toString();\n                if (!name) name = \"Unknown\";\n                if (!title) title = \"Unknown\";\n                if (!company) company = \"Unknown\";\n                \n                // Clean up extra spaces and punctuation\n                name = name.replace(/[,\\-]+$/, '').trim();\n                title = title.replace(/[,\\-]+$/, '').trim();\n                company = company.replace(/[,\\-]+$/, '').trim();\n                \n                results.push({\n                    SNo: srNo,\n                    Name: name,\n                    Email: email,\n                    Title: title,\n                    Company: company\n                });\n            }\n        }\n    }\n}\n\nreturn results.map(item => ({ json: item }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -64
+      ],
+      "id": "5a95979d-d2cc-4aa1-adf5-4c4afaa13b7f",
+      "name": "Code",
+      "alwaysOutputData": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1ebccd7a-8018-4750-9cf2-6419aca27bd7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d851df2a37d475da76fde6da02d32e26fcfc75fe0331a294313be23f87de3c92"
+  },
+  "id": "4h3p9UVOF6FrQKFN",
+  "tags": []
+}
